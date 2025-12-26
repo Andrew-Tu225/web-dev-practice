@@ -6,6 +6,10 @@ function dragElement(terrariumElement){
         currY = 0;
 
     terrariumElement.onpointerdown = pointerDrag;
+    terrariumElement.addEventListener('dblclick', function(event){
+        let currentZ = parseInt(terrariumElement.style.zIndex) || 0;
+        terrariumElement.style.zIndex = currentZ + 1;
+    })
 
     function pointerDrag(e) {
         e.preventDefault();
@@ -29,12 +33,29 @@ function dragElement(terrariumElement){
     }
 
     function stopElementDrag() {
+        let finalLocation = {x:terrariumElement.offsetLeft, y:terrariumElement.offsetTop}
+        localStorage.setItem(terrariumElement.id, JSON.stringify(finalLocation))
+
         // Remove the document-level event listeners
         document.onpointerup = null;
         document.onpointermove = null;
     }
 }
 
+function loadPosition(terrariumElement){
+        const storedData = JSON.parse(localStorage.getItem(terrariumElement.id));
+        if (storedData){
+            terrariumElement.style.left = storedData.x + "px";
+            terrariumElement.style.top = storedData.y + "px";
+        }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    for (let i=1;i<15;i++){
+        let terrariumElement = document.getElementById("plant"+i);
+        loadPosition(terrariumElement);
+    }
+});
 
 
 // Enable drag functionality for all 14 plants
