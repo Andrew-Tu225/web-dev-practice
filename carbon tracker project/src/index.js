@@ -40,6 +40,7 @@ async function displayCarbonUsage(apiKey, regionName) {
 
         const carbonIntensityData = await carbonIntensityResponse.json();
         const carbonIntensity = carbonIntensityData.carbonIntensity;
+        calculateColor(carbonIntensity);
 
         const electricityMixResponse = await fetch(electricityMixUrl, {
             method: 'GET',
@@ -73,7 +74,7 @@ async function displayCarbonUsage(apiKey, regionName) {
 		form.style.display = 'none';
 		myregion.textContent = regionName.toUpperCase();
 		usage.textContent = `${carbonIntensity} grams (grams CO₂ emitted per kilowatt hour)`;
-		fossilfuel.textContent = `${fossilPercentage}% (percentage of fossil fuels used to generate electricity)`;
+		fossilfuel.textContent = `${fossilPercentage.toFixed(2)}% (percentage of fossil fuels used to generate electricity)`;
 		results.style.display = 'block';
     }
     catch (error) {
@@ -108,6 +109,30 @@ function handleSubmit(e) {
 	setUpUser(api.value, region.value);
 }
 
+function calculateColor(value) {
+	// Define CO2 intensity scale (grams per kWh)
+	const co2Scale = [0, 150, 600, 750, 800];
+	// Corresponding colors from green (clean) to dark brown (high carbon)
+	const colors = ['#2AA364', '#F5EB4D', '#9E4229', '#381D02', '#381D02'];
+
+	// Find the closest scale value to our input
+	const closestNum = co2Scale.reduce((prev, curr) => {
+		return (Math.abs(prev - value) < Math.abs(curr - value) ? prev : curr);
+	});
+	
+	console.log(`${value} is closest to ${closestNum}`);
+	
+	// Find the index for color mapping
+	const num = (element) => element > closestNum;
+	const scaleIndex = co2Scale.findIndex(num);
+
+	const closestColor = colors[scaleIndex];
+	console.log(scaleIndex, closestColor);
+
+	// Send color update message to background script
+	chrome.runtime.sendMessage({ action: 'updateIcon', value: { color: closestColor } });
+}
+
 //3 initial checks
 function init(){
     const storedRegion = localStorage.getItem('regionName');
@@ -126,6 +151,13 @@ function init(){
 		form.style.display = 'none';
 		clearBtn.style.display = 'block';
     }
+
+    chrome.runtime.sendMessage({
+        action: 'updateIcon',
+        value: {
+            color: 'green',
+        },
+    });
 }
 
 function reset(e) {
